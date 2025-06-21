@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zanzibar_tourism/providers/theme_provider.dart';
+import 'package:zanzibar_tourism/providers/auth_provider.dart';
 import 'package:zanzibar_tourism/services/auth_service.dart';
+import 'package:zanzibar_tourism/screens/client/edit_profile_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -27,25 +29,49 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-class _UserInfoSection extends StatelessWidget {
+class _UserInfoSection extends ConsumerWidget {
   const _UserInfoSection();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.read(authServiceProvider).currentUser;
+
     return Column(
       children: [
-        const CircleAvatar(
+        CircleAvatar(
           radius: 40,
-          backgroundImage: NetworkImage(
-            'https://images.unsplash.com/photo-1639526658732-ac7fdbfcf4db?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTl8fHBlcnNvbiUyMGhpamFifGVufDB8fDB8fHww',
-          ),
+          backgroundImage:
+              user?.photoURL != null
+                  ? NetworkImage(user!.photoURL!)
+                  : const NetworkImage(
+                    'https://images.unsplash.com/photo-1639526658732-ac7fdbfcf4db?w=900&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTl8fHBlcnNvbiUyMGhpamFifGVufDB8fDB8fHww',
+                  ),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'Rahma Yusuf',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Text(
+          user?.displayName ?? 'User',
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        const Text('rahmayusuf@gmail.com'),
+        Text(user?.email ?? 'No email'),
+        if (user?.emailVerified == false) ...[
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.orange.shade100,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.orange.shade300),
+            ),
+            child: const Text(
+              'Email not verified',
+              style: TextStyle(
+                color: Colors.orange,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -68,7 +94,12 @@ class _AccountManagementSection extends ConsumerWidget {
           leading: const Icon(Icons.edit),
           title: const Text('Edit Profile'),
           onTap: () {
-            // Navigate to edit profile screen
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const EditProfileScreen(),
+              ),
+            );
           },
         ),
         ListTile(

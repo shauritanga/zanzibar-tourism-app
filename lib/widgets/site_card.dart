@@ -1,7 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:zanzibar_tourism/models/cultural_site.dart';
-import 'package:zanzibar_tourism/screens/site_screen_detail.dart';
+import 'package:zanzibar_tourism/routing/routes.dart';
+import 'package:zanzibar_tourism/screens/client/site_screen_detail.dart';
 
 class SiteCard extends StatelessWidget {
   final CulturalSite site;
@@ -20,9 +22,7 @@ class SiteCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => SiteDetailScreen(site: site)),
-          );
+         context.goNamed(AppRoute.clientSites.name);
         },
         child: Row(
           children: [

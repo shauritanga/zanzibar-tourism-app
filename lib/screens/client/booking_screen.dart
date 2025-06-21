@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:zanzibar_tourism/providers/booking_provider.dart';
+import 'package:zanzibar_tourism/screens/client/payment_screen.dart';
 
 class BookingScreen extends ConsumerStatefulWidget {
   const BookingScreen({super.key});
@@ -94,51 +95,88 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
-
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Please log in to book')));
-        setState(() => _isLoading = false);
-        return;
-      }
-
-      // Add additional booking details
-      final int guests = int.tryParse(_guestsController.text) ?? 2;
-
-      await ref
-          .read(bookingProvider)
-          .createBooking(
-            userId: user.uid,
-            tourName: _tourNameController.text.trim(),
-            date: _selectedDate!,
-            timeSlot: _selectedTimeSlot,
-            guests: guests,
-            includeTransportation: _includeTransportation,
-            includeGuide: _includeGuide,
-          );
-
-      if (mounted) {
-        // Show success dialog instead of snackbar
-        showDialog(
-          context: context,
-          builder:
-              (context) => _BookingConfirmationDialog(
-                tourName: _tourNameController.text,
-                date: _selectedDate!,
-                timeSlot: _selectedTimeSlot,
-              ),
-        );
-      }
-    } catch (e) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
-    } finally {
-      setState(() => _isLoading = false);
+      ).showSnackBar(const SnackBar(content: Text('Please log in to book')));
+      return;
+    }
+
+    // Calculate total price
+    int basePrice = 0;
+    for (var tour in _popularTours) {
+      if (tour['name'] == _tourNameController.text) {
+        basePrice = tour['price'];
+        break;
+      }
+    }
+
+    final int guests = int.tryParse(_guestsController.text) ?? 2;
+    final int transportationFee = _includeTransportation ? 15 : 0;
+    final int guideFee = _includeGuide ? 25 : 0;
+    final double totalPrice =
+        ((basePrice * guests) + transportationFee + guideFee).toDouble();
+
+    // Navigate to payment screen
+    final paymentResult = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => PaymentScreen(
+              amount: totalPrice.toDouble(),
+              description: 'Tour Booking: ${_tourNameController.text}',
+              userId: user.uid,
+              metadata: {
+                'bookingType': 'tour',
+                'tourName': _tourNameController.text.trim(),
+                'date': _selectedDate!.toIso8601String(),
+                'timeSlot': _selectedTimeSlot,
+                'guests': guests,
+                'includeTransportation': _includeTransportation,
+                'includeGuide': _includeGuide,
+              },
+            ),
+      ),
+    );
+
+    // If payment was successful, create the booking
+    if (paymentResult == true && mounted) {
+      setState(() => _isLoading = true);
+
+      try {
+        await ref
+            .read(bookingProvider)
+            .createBooking(
+              userId: user.uid,
+              tourName: _tourNameController.text.trim(),
+              date: _selectedDate!,
+              timeSlot: _selectedTimeSlot,
+              guests: guests,
+              includeTransportation: _includeTransportation,
+              includeGuide: _includeGuide,
+            );
+
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder:
+                (context) => _BookingConfirmationDialog(
+                  tourName: _tourNameController.text,
+                  date: _selectedDate!,
+                  timeSlot: _selectedTimeSlot,
+                ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Booking creation failed: $e')),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
     }
   }
 

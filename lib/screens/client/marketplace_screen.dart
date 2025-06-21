@@ -3,6 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zanzibar_tourism/models/product.dart';
 import 'package:zanzibar_tourism/providers/marketplace_provider.dart';
+import 'package:zanzibar_tourism/providers/payment_provider.dart';
+import 'package:zanzibar_tourism/providers/favorites_provider.dart';
+import 'package:zanzibar_tourism/services/favorites_service.dart';
+import 'package:zanzibar_tourism/services/auth_service.dart';
+import 'package:zanzibar_tourism/screens/client/cart_screen.dart';
 import 'package:zanzibar_tourism/widgets/product_card.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -47,6 +52,52 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
               floating: false,
               pinned: true,
               backgroundColor: Colors.teal,
+              actions: [
+                Consumer(
+                  builder: (context, ref, child) {
+                    final itemCount = ref.watch(cartItemCountProvider);
+                    return Stack(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.shopping_cart),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CartScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                        if (itemCount > 0)
+                          Positioned(
+                            right: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              constraints: const BoxConstraints(
+                                minWidth: 16,
+                                minHeight: 16,
+                              ),
+                              child: Text(
+                                '$itemCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ],
               flexibleSpace: FlexibleSpaceBar(
                 title: Text(
                   'Local Marketplace',
@@ -223,8 +274,9 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
 
             // Products list
             Expanded(
-              child: Builder(
-                builder: (context) {
+              child: productsAsync.when(
+                data: (products) {
+                  // Filter products by category and search query
                   final filteredProducts =
                       products.where((product) {
                         final matchesCategory =
@@ -289,128 +341,72 @@ class _MarketplaceScreenState extends ConsumerState<MarketplaceScreen> {
                         },
                       );
                 },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error:
+                    (error, stack) => Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: Colors.red.shade300,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Error loading products',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton(
+                            onPressed: () => ref.refresh(marketplaceProvider),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
+                    ),
               ),
-
-              //  productsAsync.when(
-              //   data: (products) {
-              //     // Filter products by category and search query
-              //     final filteredProducts =
-              //         products.where((product) {
-              //           final matchesCategory =
-              //               _selectedCategory == 'All' ||
-              //               product.category == _selectedCategory;
-              //           final matchesSearch =
-              //               _searchController.text.isEmpty ||
-              //               product.name.toLowerCase().contains(
-              //                 _searchController.text.toLowerCase(),
-              //               ) ||
-              //               product.description.toLowerCase().contains(
-              //                 _searchController.text.toLowerCase(),
-              //               );
-              //           return matchesCategory && matchesSearch;
-              //         }).toList();
-
-              // if (filteredProducts.isEmpty) {
-              //   return Center(
-              //     child: Column(
-              //       mainAxisAlignment: MainAxisAlignment.center,
-              //       children: [
-              //         Icon(
-              //           Icons.search_off,
-              //           size: 64,
-              //           color: Colors.grey.shade400,
-              //         ),
-              //         const SizedBox(height: 16),
-              //         Text(
-              //           'No products found',
-              //           style: TextStyle(
-              //             fontSize: 18,
-              //             color: Colors.grey.shade600,
-              //           ),
-              //         ),
-              //       ],
-              //     ),
-              //   );
-              // }
-
-              // return _isGridView
-              //     ? GridView.builder(
-              //       padding: const EdgeInsets.all(16),
-              //       gridDelegate:
-              //           const SliverGridDelegateWithFixedCrossAxisCount(
-              //             crossAxisCount: 2,
-              //             childAspectRatio: 0.75,
-              //             crossAxisSpacing: 16,
-              //             mainAxisSpacing: 16,
-              //           ),
-              //       itemCount: filteredProducts.length,
-              //       itemBuilder: (context, index) {
-              //         final product = filteredProducts[index];
-              //         return _EnhancedProductCard(product: product);
-              //       },
-              //     )
-              //     : ListView.builder(
-              //       padding: const EdgeInsets.all(16),
-              //       itemCount: filteredProducts.length,
-              //       itemBuilder: (context, index) {
-              //         final product = filteredProducts[index];
-              //         return _ProductListItem(product: product);
-              //       },
-              //     );
-              //   },
-              //   loading: () => const Center(child: CircularProgressIndicator()),
-              //   error:
-              //       (error, stack) => Center(
-              //         child: Column(
-              //           mainAxisAlignment: MainAxisAlignment.center,
-              //           children: [
-              //             Icon(
-              //               Icons.error_outline,
-              //               size: 64,
-              //               color: Colors.red.shade300,
-              //             ),
-              //             const SizedBox(height: 16),
-              //             Text(
-              //               'Error loading products',
-              //               style: TextStyle(
-              //                 fontSize: 18,
-              //                 color: Colors.grey.shade600,
-              //               ),
-              //             ),
-              //             const SizedBox(height: 8),
-              //             ElevatedButton(
-              //               onPressed: () => ref.refresh(marketplaceProvider),
-              //               style: ElevatedButton.styleFrom(
-              //                 backgroundColor: Colors.teal,
-              //                 foregroundColor: Colors.white,
-              //               ),
-              //               child: const Text('Retry'),
-              //             ),
-              //           ],
-              //         ),
-              //       ),
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.teal,
-        child: const Icon(Icons.shopping_cart, color: Colors.white),
-        onPressed: () {
-          // Navigate to cart
+      floatingActionButton: Consumer(
+        builder: (context, ref, child) {
+          final itemCount = ref.watch(cartItemCountProvider);
+          return FloatingActionButton.extended(
+            backgroundColor: Colors.teal,
+            icon: const Icon(Icons.shopping_cart, color: Colors.white),
+            label: Text(
+              itemCount > 0 ? 'Cart ($itemCount)' : 'Cart',
+              style: const TextStyle(color: Colors.white),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartScreen()),
+              );
+            },
+          );
         },
       ),
     );
   }
 }
 
-class _EnhancedProductCard extends StatelessWidget {
+class _EnhancedProductCard extends ConsumerWidget {
   final dynamic product;
 
   const _EnhancedProductCard({required this.product});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -502,6 +498,12 @@ class _EnhancedProductCard extends StatelessWidget {
                       ),
                     ),
                   ),
+                // Favorite button
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: _buildFavoriteButton(product, ref),
+                ),
               ],
             ),
             // Product info
@@ -538,15 +540,37 @@ class _EnhancedProductCard extends StatelessWidget {
                           color: Colors.teal,
                         ),
                       ),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.teal,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.add_shopping_cart,
-                          color: Colors.white,
-                          size: 20,
+                      GestureDetector(
+                        onTap: () {
+                          final cartItem = CartItem(
+                            productId: product.id ?? '',
+                            name: product.name,
+                            price: product.price.toDouble(),
+                            quantity: 1,
+                            image: product.image ?? '',
+                            sellerId: product.sellerId ?? '',
+                          );
+                          ref.read(cartProvider.notifier).addItem(cartItem);
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${product.name} added to cart'),
+                              backgroundColor: Colors.green,
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.teal,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.add_shopping_cart,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ],
@@ -557,6 +581,82 @@ class _EnhancedProductCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildFavoriteButton(dynamic product, WidgetRef ref) {
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) {
+      return const SizedBox.shrink();
+    }
+
+    return FutureBuilder<bool>(
+      future: ref
+          .read(favoritesServiceProvider)
+          .isFavorite(
+            userId: user.uid,
+            itemId: product.id ?? '',
+            type: FavoriteType.product,
+          ),
+      builder: (context, snapshot) {
+        final isFavorite = snapshot.data ?? false;
+
+        return GestureDetector(
+          onTap: () async {
+            try {
+              await ref
+                  .read(favoritesNotifierProvider.notifier)
+                  .toggleFavorite(
+                    userId: user.uid,
+                    itemId: product.id ?? '',
+                    type: FavoriteType.product,
+                    title: product.name,
+                    description: product.description,
+                    imageUrl: product.image ?? '',
+                    price: product.price.toDouble(),
+                  );
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    isFavorite
+                        ? '${product.name} removed from favorites'
+                        : '${product.name} added to favorites',
+                  ),
+                  backgroundColor: isFavorite ? Colors.orange : Colors.green,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Error: $e'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              isFavorite ? Icons.favorite : Icons.favorite_border,
+              color: isFavorite ? Colors.red : Colors.grey,
+              size: 20,
+            ),
+          ),
+        );
+      },
     );
   }
 }

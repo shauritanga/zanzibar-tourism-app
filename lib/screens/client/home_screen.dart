@@ -16,8 +16,8 @@ class HomeScreen extends ConsumerWidget {
     return Scaffold(
       body: sitesAsync.when(
         data:
-            (sites) => Scaffold(
-              body: SingleChildScrollView(
+            (sites) => SafeArea(
+              child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -40,6 +40,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
             ),
+
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text('Error: $error')),
       ),

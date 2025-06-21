@@ -5,11 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zanzibar_tourism/providers/theme_provider.dart';
 import 'package:zanzibar_tourism/routing/routes.dart';
 import 'package:zanzibar_tourism/theme/app_theme.dart';
+import 'package:zanzibar_tourism/services/data_seeder.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Seed sample data for development
+  await DataSeeder.seedSampleData();
+
   runApp(const ProviderScope(child: ZanzibarTourismApp()));
 }
 

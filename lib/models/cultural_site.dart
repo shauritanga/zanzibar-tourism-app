@@ -7,6 +7,7 @@ class CulturalSite {
   final List<String>? images;
   final List<String>? videos;
   final GeoPoint? location;
+  final int? visitCount;
 
   CulturalSite({
     required this.id,
@@ -15,6 +16,7 @@ class CulturalSite {
     this.images,
     this.videos,
     this.location,
+    this.visitCount,
   });
 
   factory CulturalSite.fromMap(Map<String, dynamic> data, String id) {
@@ -25,6 +27,7 @@ class CulturalSite {
       images: List<String>.from(data['images'] ?? []),
       videos: List<String>.from(data['videos'] ?? []),
       location: data['location'] as GeoPoint?,
+      visitCount: data['visitCount'] as int?,
     );
   }
 
@@ -35,6 +38,7 @@ class CulturalSite {
       'images': images,
       'videos': videos,
       'location': location,
+      'visitCount': visitCount,
     };
   }
 }
